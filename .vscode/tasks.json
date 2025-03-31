@@ -1,0 +1,129 @@
+{
+  "tasks": [
+    {
+      "command": "make clean; make",
+      "group": {
+        "kind": "build"
+      },
+      "label": "build",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell"
+    },
+    {
+      "command": "make clean; make; make program",
+      "label": "build_and_program",
+      "group": {
+        "kind": "build"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell"
+    },
+    {
+      "command": "make clean; make; make program-dfu",
+      "label": "build_and_program_dfu",
+      "group": {
+        "kind": "build"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell"
+    },
+    {
+      "command": "make clean;make",
+      "dependsOn": [
+        "build_libdaisy",
+        "build_daisysp"
+      ],
+      "group": {
+        "kind": "build"
+      },
+      "label": "build_all",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell"
+    },
+    {
+      "command": "make clean;DEBUG=1 make",
+      "dependsOn": [
+        "build_libdaisy",
+        "build_daisysp"
+      ],
+      "group": {
+        "kind": "build"
+      },
+      "label": "build_all_debug",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell"
+    },
+    {
+      "command": "make program-dfu",
+      "label": "program-dfu",
+      "group": {
+        "kind": "build"
+      },
+      "problemMatcher": [],
+      "type": "shell"
+    },
+    {
+      "command": "make program",
+      "label": "program",
+      "group": {
+        "kind": "build"
+      },
+      "problemMatcher": [],
+      "type": "shell"
+    },
+    {
+      "command": "make",
+      "label": "build_libdaisy",
+      "group": {
+        "kind": "build"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/../DaisyExamples/libDaisy/"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell"
+    },
+    {
+      "command": "make",
+      "label": "build_daisysp",
+      "group": {
+        "kind": "build"
+      },
+      "options": {
+        "cwd": "${workspaceFolder}/../DaisyExamples/DaisySP/"
+      },
+      "problemMatcher": [
+        "$gcc"
+      ],
+      "type": "shell"
+    }
+  ],
+  "version": "2.0.0"
+}
