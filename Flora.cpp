@@ -26,7 +26,7 @@ int main(void)
 {
 	patch.Init();
 	patch.SetAudioBlockSize(4); // number of samples handled per callback
-	patch.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_48KHZ);
+	patch.SetAudioSampleRate(SaiHandle::Config::SampleRate::SAI_96KHZ);
 	patch.StartAudio(AudioCallback);
 	while(1) {}
 }
