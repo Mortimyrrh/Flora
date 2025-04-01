@@ -10,38 +10,36 @@ DaisyPatchSM patch;
 float volume = 1;
 float depth = 0;
 float rate = 1;
+float lfo = 1;
 
-daisysp::Chorus chorusL;
-daisysp::Chorus chorusR;
+float dial2 = 0;
+
+daisysp::Oscillator LFO;
+
 
 void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
 	patch.ProcessAllControls();
-	volume = patch.GetAdcValue(CV_1); // 0 -> 1
+	volume = patch.GetAdcValue(CV_1);
 
-	depth = patch.GetAdcValue(CV_2);
-	chorusL.SetLfoDepth(depth);
-	chorusR.SetLfoDepth(depth);
-
-	rate = patch.GetAdcValue(CV_3);
-	chorusL.SetLfoFreq(rate * 3);
-	chorusR.SetLfoFreq(rate * 2.5);
+	dial2 = patch.GetAdcValue(CV_2);
+	LFO.SetFreq(dial2  * 10);
 
 	for (size_t i = 0; i < size; i++)
 	{
-		chorusL.Process(IN_L[i]);
-		chorusR.Process(IN_R[i]);
+		lfo = LFO.Process();
 
-		OUT_L[i] = chorusL.GetLeft() * volume;
-		OUT_R[i] = chorusR.GetRight() * volume;
+		OUT_L[i] = IN_L[i] * lfo * volume;
+		OUT_R[i] = IN_R[i] * lfo * volume;
 	}
 }
 
 int main(void)
 {
 	patch.Init();
-	chorusL.Init(96000.);
-	chorusR.Init(96000.);
+	LFO.Init(96000.);
+	LFO.SetFreq(1);
+	LFO.SetAmp(1);
 
 
 	patch.SetAudioBlockSize(4); // number of samples handled per callback
