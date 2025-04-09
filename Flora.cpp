@@ -80,9 +80,9 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	// lfo.SetFreq(lfo_freq  * 10);
 	filter_cutoff = dial3 * filter_scale; //100 + ((1 + ((log(dial3) * 0.4))) * 9000); // This is a bit janky no log scaling
 	dry_wet_mix = dial4; // remove 3 % on each end of the dial
-	filter_q = 0.1;
+	filter_q = 0;
 	
-	pingpong = !toggle.Pressed();
+	pingpong = toggle.Pressed();
 
 	low_pass_filter_L.SetFreq(filter_cutoff);
 	low_pass_filter_R.SetFreq(filter_cutoff);
@@ -100,17 +100,19 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 		feedback_L = (pingpong ? delayed_L : delayed_R) * feedback;
 		feedback_R = (pingpong ? delayed_R : delayed_L) * feedback;
 		
-		delay_L.Write(IN_L[i] + feedback_L);//low_pass_filter_L.Low());
-		delay_R.Write(IN_R[i] + feedback_R);//low_pass_filter_R.Low());
-		
-		low_pass_filter_L.Process(delayed_L);
-		low_pass_filter_R.Process(delayed_R);
+		low_pass_filter_L.Process(feedback_L);
+		low_pass_filter_R.Process(feedback_R);
 
 		filtered_R = low_pass_filter_L.Low();
 		filtered_L = low_pass_filter_R.Low();
 
-		wet_L = filtered_R;
-		wet_R = filtered_L;
+		// tanh saturation Oo
+
+		delay_L.Write(IN_L[i] + filtered_R);
+		delay_R.Write(IN_R[i] + filtered_L);
+
+		wet_L = delayed_L;
+		wet_R = delayed_R;
 
 		// https://dsp.stackexchange.com/questions/14754/equal-power-crossfade
 		// Need to read this: https://dafx16.vutbr.cz/dafxpapers/16-DAFx-16_paper_07-PN.pdf
