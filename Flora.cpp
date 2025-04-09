@@ -32,6 +32,10 @@ float feedback_R = 0;
 
 float feedback = 0;
 
+float filter_scale = (22000 - 20) / (1 - 0);
+float filtered_L = 0;
+float filtered_R = 0;
+
 float wet_L = 0;
 float wet_R = 0;
 
@@ -40,6 +44,8 @@ float dry_mix = 0;
 float wet_mix = 0;
 
 bool pingpong = false;
+
+const float HALF_PI = 1.57079632679;
 
 daisysp::Oscillator lfo;
 daisysp::Svf low_pass_filter_L;
@@ -54,7 +60,6 @@ const float Fs = 96000.f; // Sample rate
 
 daisysp::DelayLine <float, MAX_DELAY> delay_L;
 daisysp::DelayLine <float, MAX_DELAY> delay_R;
-
 
 void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, size_t size)
 {
@@ -73,9 +78,9 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	feedback = dial2 * 1;
 	// lfo_freq = dial3; TODO: LP cutoff
 	// lfo.SetFreq(lfo_freq  * 10);
-	filter_cutoff = 20 + ((1 + ((log(dial3) * 0.4))) * 22000); // This is a bit janky no log scaling
-	dry_wet_mix = dial4;
-	filter_q = 0.5;
+	filter_cutoff = dial3 * filter_scale; //100 + ((1 + ((log(dial3) * 0.4))) * 9000); // This is a bit janky no log scaling
+	dry_wet_mix = dial4; // remove 3 % on each end of the dial
+	filter_q = 0.1;
 	
 	pingpong = !toggle.Pressed();
 
@@ -91,25 +96,28 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 		 // delay.SetDelay(delay_time);
 		delayed_L = delay_L.ReadHermite(delay_time);
 		delayed_R = delay_R.ReadHermite(delay_time);
-
-		//
 		
-		feedback_L = (pingpong ? IN_R[i] : IN_L[i]) * feedback;
-		feedback_R = (pingpong ? IN_L[i] : IN_R[i]) * feedback;
+		feedback_L = (pingpong ? delayed_L : delayed_R) * feedback;
+		feedback_R = (pingpong ? delayed_R : delayed_L) * feedback;
+		
+		delay_L.Write(IN_L[i] + feedback_L);//low_pass_filter_L.Low());
+		delay_R.Write(IN_R[i] + feedback_R);//low_pass_filter_R.Low());
+		
+		low_pass_filter_L.Process(delayed_L);
+		low_pass_filter_R.Process(delayed_R);
 
-		low_pass_filter_L.Process(feedback_L);
-		low_pass_filter_R.Process(feedback_R);
+		filtered_R = low_pass_filter_L.Low();
+		filtered_L = low_pass_filter_R.Low();
 
-		delay_L.Write(IN_L[i] + low_pass_filter_L.Low());
-		delay_R.Write(IN_R[i] + low_pass_filter_R.Low());
-
-		wet_L = delayed_L;
-		wet_R = delayed_R;
+		wet_L = filtered_R;
+		wet_R = filtered_L;
 
 		// https://dsp.stackexchange.com/questions/14754/equal-power-crossfade
 		// Need to read this: https://dafx16.vutbr.cz/dafxpapers/16-DAFx-16_paper_07-PN.pdf
-		dry_mix = sqrt(0.5f * (1.f + (1.f - dry_wet_mix)));
-		wet_mix = sqrt(0.5f * (1.f - (1.f - dry_wet_mix)));
+		// https://dsp.stackexchange.com/questions/37477/understanding-equal-power-crossfades
+		// https://www.desmos.com/calculator/xxvud7li3d
+		wet_mix = cos((1 - dry_wet_mix) * HALF_PI);
+		dry_mix = cos(dry_wet_mix * HALF_PI);
 
 		OUT_L[i] = ((wet_L * wet_mix) + (IN_L[i] * dry_mix)) * volume;
 		OUT_R[i] = ((wet_R * wet_mix) + (IN_R[i] * dry_mix)) * volume;
