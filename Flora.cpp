@@ -79,10 +79,10 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	volume = 0.2;
 	fonepole(delay_time, dial1 * Fs * 0.5f, .0002f);
 	feedback = dial2 * 1.1;
-	// lfo_freq = dial3; TODO: LP cutoff
+	// lfo_freq = dial3;
 	// lfo.SetFreq(lfo_freq  * 10);
-	filter_cutoff = dial3 * filter_scale; //100 + ((1 + ((log(dial3) * 0.4))) * 9000); // This is a bit janky no log scaling
-	dry_wet_mix = dial4; // remove 3 % on each end of the dial
+	filter_cutoff = dial3 * filter_scale;
+	dry_wet_mix = dial4;
 	filter_q = 0;
 	
 	pingpong = toggle.Pressed();
@@ -95,8 +95,8 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 
 	for (size_t i = 0; i < size; i++)
 	{
-		lfo_value = lfo.Process();
-		 // delay.SetDelay(delay_time);
+		// lfo_value = lfo.Process();
+		
 		delayed_L = delay_L.ReadHermite(delay_time);
 		delayed_R = delay_R.ReadHermite(delay_time);
 		
