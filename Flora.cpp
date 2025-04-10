@@ -36,6 +36,9 @@ float filter_scale = (22000 - 20) / (1 - 0);
 float filtered_L = 0;
 float filtered_R = 0;
 
+float limiter_L = 0;
+float limiter_R = 0;
+
 float wet_L = 0;
 float wet_R = 0;
 
@@ -75,7 +78,7 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 
 	volume = 0.2;
 	fonepole(delay_time, dial1 * Fs * 0.5f, .0002f);
-	feedback = dial2 * 1;
+	feedback = dial2 * 1.1;
 	// lfo_freq = dial3; TODO: LP cutoff
 	// lfo.SetFreq(lfo_freq  * 10);
 	filter_cutoff = dial3 * filter_scale; //100 + ((1 + ((log(dial3) * 0.4))) * 9000); // This is a bit janky no log scaling
@@ -97,7 +100,7 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 		delayed_L = delay_L.ReadHermite(delay_time);
 		delayed_R = delay_R.ReadHermite(delay_time);
 		
-		feedback_L = (pingpong ? delayed_L : delayed_R) * feedback;
+		feedback_L = (pingpong ? delayed_L : delayed_R) * feedback; // this will click should use a cross fade
 		feedback_R = (pingpong ? delayed_R : delayed_L) * feedback;
 		
 		low_pass_filter_L.Process(feedback_L);
@@ -107,9 +110,11 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 		filtered_L = low_pass_filter_R.Low();
 
 		// tanh saturation Oo
+		limiter_L = tanh(filtered_R);
+		limiter_R = tanh(filtered_L);
 
-		delay_L.Write(IN_L[i] + filtered_R);
-		delay_R.Write(IN_R[i] + filtered_L);
+		delay_L.Write(IN_L[i] + limiter_L);
+		delay_R.Write(IN_R[i] + limiter_R);
 
 		wet_L = delayed_L;
 		wet_R = delayed_R;
@@ -118,6 +123,8 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 		// Need to read this: https://dafx16.vutbr.cz/dafxpapers/16-DAFx-16_paper_07-PN.pdf
 		// https://dsp.stackexchange.com/questions/37477/understanding-equal-power-crossfades
 		// https://www.desmos.com/calculator/xxvud7li3d
+		// https://www.desmos.com/calculator/q9bd0e0drf
+
 		wet_mix = cos((1 - dry_wet_mix) * HALF_PI);
 		dry_mix = cos(dry_wet_mix * HALF_PI);
 
