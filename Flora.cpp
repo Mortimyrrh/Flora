@@ -19,8 +19,12 @@ float dial4 = 0;
 float volume = 1;
 float depth = 0;
 float rate = 1;
+
 float lfo_value = 1;
 float lfo_freq = 1;
+
+float lfo2_value = 1;
+float lfo2_freq = 1;
 
 float delay_time = 0;
 
@@ -46,11 +50,18 @@ float dry_wet_mix = 0;
 float dry_mix = 0;
 float wet_mix = 0;
 
+float vibrato_delay_time_L = 0;
+float vibrato_delay_time_R = 0;
+
+float vibrato_speed = 0;
+float vibrato_depth = 0;
+
 bool pingpong = false;
 
 const float HALF_PI = 1.57079632679;
 
 daisysp::Oscillator lfo;
+daisysp::Oscillator lfo2;
 daisysp::Svf low_pass_filter_L;
 daisysp::Svf low_pass_filter_R;
 
@@ -76,12 +87,30 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	dial3 = patch.GetAdcValue(CV_3);
 	dial4 = patch.GetAdcValue(CV_4);
 
-	volume = 0.2;
+	volume = 0.3;
 	fonepole(delay_time, dial1 * Fs * 0.5f, .0002f);
 	feedback = dial2 * 1.1;
+
 	// lfo_freq = dial3;
 	// lfo.SetFreq(lfo_freq  * 10);
-	filter_cutoff = dial3 * filter_scale;
+	
+	vibrato_speed = dial3;
+	lfo.SetFreq(vibrato_speed * 10);
+	lfo2.SetFreq(vibrato_speed * 9);
+
+	
+	vibrato_depth = 0.4 * 0.1;
+
+	lfo.SetAmp(vibrato_depth);
+	lfo2.SetAmp(vibrato_depth);
+	
+	// // filter_cutoff = dial3 * filter_scale;
+	dry_wet_mix = dial4;
+	// filter_q = 0;
+	
+
+
+	filter_cutoff = 0.4 * filter_scale;
 	dry_wet_mix = dial4;
 	filter_q = 0;
 	
@@ -95,10 +124,14 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 
 	for (size_t i = 0; i < size; i++)
 	{
-		// lfo_value = lfo.Process();
-		
-		delayed_L = delay_L.ReadHermite(delay_time);
-		delayed_R = delay_R.ReadHermite(delay_time);
+		lfo_value = lfo.Process();
+		lfo2_value = lfo2.Process();
+
+		fonepole(vibrato_delay_time_L, (lfo_value) * Fs * 0.5f, .00002f);
+		fonepole(vibrato_delay_time_R, (lfo2_value) * Fs * 0.5f, .00002f);
+
+		delayed_L = delay_L.ReadHermite(delay_time + vibrato_delay_time_L);
+		delayed_R = delay_R.ReadHermite(delay_time + vibrato_delay_time_R);
 		
 		feedback_L = (pingpong ? delayed_L : delayed_R) * feedback; // this will click should use a cross fade
 		feedback_R = (pingpong ? delayed_R : delayed_L) * feedback;
@@ -140,6 +173,10 @@ int main(void)
 	lfo.Init(Fs);
 	lfo.SetFreq(1);
 	lfo.SetAmp(1);
+
+	lfo2.Init(Fs);
+	lfo2.SetFreq(1);
+	lfo2.SetAmp(1);
 	
 	delay_L.Init();
 	delay_R.Init();
