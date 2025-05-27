@@ -46,6 +46,10 @@ float dry_wet_mix = 0;
 float dry_mix = 0;
 float wet_mix = 0;
 
+float vibrato_depth = 0;
+float vibrato_speed = 0;
+float vibrato_delay_time = 0;
+
 bool pingpong = false;
 
 const float HALF_PI = 1.57079632679;
@@ -76,48 +80,55 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	dial3 = patch.GetAdcValue(CV_3);
 	dial4 = patch.GetAdcValue(CV_4);
 
-	volume = 0.2;
-	fonepole(delay_time, dial1 * Fs * 0.5f, .0002f);
-	feedback = dial2 * 1.1;
-	// lfo_freq = dial3;
-	// lfo.SetFreq(lfo_freq  * 10);
-	filter_cutoff = dial3 * filter_scale;
-	dry_wet_mix = dial4;
-	filter_q = 0;
+	volume = 0.3;
+
+	fonepole(delay_time, dial3 * Fs * 0.5f, .00002f);
+	// feedback = dial2 * 1.1;
 	
-	pingpong = toggle.Pressed();
-
-	low_pass_filter_L.SetFreq(filter_cutoff);
-	low_pass_filter_R.SetFreq(filter_cutoff);
-
-	low_pass_filter_L.SetRes(filter_q);
-	low_pass_filter_R.SetRes(filter_q);
-
+	vibrato_speed = dial1;
+	lfo.SetFreq(vibrato_speed * 10);
+	
+	vibrato_depth = dial2 * 0.1;
+	
+	// // filter_cutoff = dial3 * filter_scale;
+	dry_wet_mix = dial4;
+	// filter_q = 0;
+	
+	// pingpong = toggle.Pressed();
+	
+	// low_pass_filter_L.SetFreq(filter_cutoff);
+	// low_pass_filter_R.SetFreq(filter_cutoff);
+	
+	// low_pass_filter_L.SetRes(filter_q);
+	// low_pass_filter_R.SetRes(filter_q);
+	
 	for (size_t i = 0; i < size; i++)
 	{
-		// lfo_value = lfo.Process();
+		delay_L.Write(IN_L[i]);
+		delay_R.Write(IN_R[i]);
 		
-		delayed_L = delay_L.ReadHermite(delay_time);
-		delayed_R = delay_R.ReadHermite(delay_time);
-		
-		feedback_L = (pingpong ? delayed_L : delayed_R) * feedback; // this will click should use a cross fade
-		feedback_R = (pingpong ? delayed_R : delayed_L) * feedback;
-		
-		low_pass_filter_L.Process(feedback_L);
-		low_pass_filter_R.Process(feedback_R);
+		lfo_value = lfo.Process();
 
-		filtered_R = low_pass_filter_L.Low();
-		filtered_L = low_pass_filter_R.Low();
+		fonepole(vibrato_delay_time, ((lfo_value * vibrato_depth)) * Fs * 0.5f, .00002f);
+
+		delayed_L = delay_L.ReadHermite(delay_time + vibrato_delay_time);
+		delayed_R = delay_R.ReadHermite(delay_time + vibrato_delay_time);
+		
+		// feedback_L = (pingpong ? delayed_L : delayed_R) * feedback; // this will click should use a cross fade
+		// feedback_R = (pingpong ? delayed_R : delayed_L) * feedback;
+		
+		// low_pass_filter_L.Process(feedback_L);
+		// low_pass_filter_R.Process(feedback_R);
+
+		// filtered_R = low_pass_filter_L.Low();
+		// filtered_L = low_pass_filter_R.Low();
 
 		// tanh saturation Oo
-		limiter_L = tanh(filtered_R);
-		limiter_R = tanh(filtered_L);
+		// limiter_L = tanh(filtered_R);
+		// limiter_R = tanh(filtered_L);
 
-		delay_L.Write(IN_L[i] + limiter_L);
-		delay_R.Write(IN_R[i] + limiter_R);
-
-		wet_L = delayed_L;
-		wet_R = delayed_R;
+		OUT_L[i] = delayed_L;
+		OUT_R[i] = delayed_R;
 
 		// https://dsp.stackexchange.com/questions/14754/equal-power-crossfade
 		// Need to read this: https://dafx16.vutbr.cz/dafxpapers/16-DAFx-16_paper_07-PN.pdf
@@ -125,11 +136,11 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 		// https://www.desmos.com/calculator/xxvud7li3d
 		// https://www.desmos.com/calculator/q9bd0e0drf
 
-		wet_mix = cos((1 - dry_wet_mix) * HALF_PI);
-		dry_mix = cos(dry_wet_mix * HALF_PI);
+		// wet_mix = cos((1 - dry_wet_mix) * HALF_PI);
+		// dry_mix = cos(dry_wet_mix * HALF_PI);
 
-		OUT_L[i] = ((wet_L * wet_mix) + (IN_L[i] * dry_mix)) * volume;
-		OUT_R[i] = ((wet_R * wet_mix) + (IN_R[i] * dry_mix)) * volume;
+		// OUT_L[i] = ((wet_L * wet_mix) + (IN_L[i] * dry_mix)) * volume;
+		// OUT_R[i] = ((wet_R * wet_mix) + (IN_R[i] * dry_mix)) * volume;
 
 	}
 }
