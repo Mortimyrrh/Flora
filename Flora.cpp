@@ -26,6 +26,9 @@ float lfo1_freq = 1;
 float lfo2_value = 1;
 float lfo2_freq = 1;
 
+float lfo3_value = 1;
+float lfo3_freq = 1;
+
 float delay_time = 0;
 
 float delayed_L1 = 0;
@@ -69,6 +72,7 @@ const float HALF_PI = 1.57079632679;
 
 daisysp::Oscillator lfo1;
 daisysp::Oscillator lfo2;
+daisysp::Oscillator lfo3;
 daisysp::Svf low_pass_filter_L;
 daisysp::Svf low_pass_filter_R;
 
@@ -103,17 +107,19 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	// lfo.SetFreq(lfo_freq  * 10);
 	
 	vibrato_speed = dial3;
-	lfo1.SetFreq(vibrato_speed * 4);
-	float phasor_depth = dial4 * 4; //1ms wiggle
+	lfo1.SetFreq(vibrato_speed * 20);
+	lfo2.SetFreq((vibrato_speed * 20) + 0.1);
+	lfo3.SetFreq((vibrato_speed * 18) + 2);
+	float phasor_depth = dial4 * 5; //1ms wiggle
 	lfo1.SetAmp(phasor_depth);
-	// lfo2.SetFreq(vibrato_speed * 9);
-
+	lfo2.SetAmp(phasor_depth * 0.9);
+	lfo3.SetAmp(phasor_depth * 0.7);
 	// vibrato_depth = dial1;
 	// lfo1.SetAmp(vibrato_depth);
 	// lfo2.SetAmp(vibrato_depth);
 	
 	// // filter_cutoff = dial3 * filter_scale;
-	dry_wet_mix = 1; // dial4
+	dry_wet_mix = 0.5; // dial4
 	// filter_q = 0;
 	
 
@@ -131,21 +137,27 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	for (size_t i = 0; i < size; i++)
 	{
 		lfo1_value = lfo1.Process();
-		delay_time = (Fs / 1000) * ((3 + (dial1 * 10)) + phasor_depth + lfo1_value); // 3-13ms with a 4ms lfo 
+		delay_time = (Fs / 1000) * ((13 + (dial1 * 27)) + phasor_depth + lfo1_value); // 13-30ms with a ?ms lfo 
 
-		// lfo2_value = lfo2.Process();
+		lfo2_value = lfo2.Process();
+		float delay_time2 = (Fs / 1000) * ((13 + (dial1 * 27)) + phasor_depth + lfo2_value); // 13-30ms with a ?ms lfo 
 
+		lfo3_value = lfo3.Process();
+		float delay_time3 = (Fs / 1000) * ((13 + (dial1 * 27)) + phasor_depth + lfo3_value); // 13-30ms with a ?ms lfo 
 		// fonepole(lfo_delay_time_1, (delay_time) * Fs * 0.5f, .00002f);
 		// fonepole(lfo_delay_time_2, (lfo2_value) * Fs * 0.5f, .00002f);
 
 		delayed_L1 = delay_L.ReadHermite(delay_time);
 		delayed_R1 = delay_R.ReadHermite(delay_time);
 
-		// delayed_L2 = delay_L.ReadHermite(delay_time + lfo_delay_time_1);
-		// delayed_R2 = delay_R.ReadHermite(delay_time + lfo_delay_time_1);
+		delayed_L2 = delay_L.ReadHermite(delay_time2);
+		delayed_R2 = delay_R.ReadHermite(delay_time2);
+
+		delayed_L3 = delay_L.ReadHermite(delay_time3);
+		delayed_R3 = delay_R.ReadHermite(delay_time3);
 		
-		feedback_L1 = (pingpong ? delayed_L1 : delayed_R1) * feedback; // this will click should use a cross fade
-		feedback_R1 = (pingpong ? delayed_R1 : delayed_L1) * feedback;
+		feedback_L1 = (pingpong ? delayed_L1 + delayed_L2 + delayed_L3 : delayed_R1 + delayed_R2 + delayed_R3) * feedback; // this will click should use a cross fade
+		feedback_R1 = (pingpong ? delayed_R1 + delayed_R2 + delayed_R3: delayed_L1 + delayed_L2 + delayed_L3) * feedback;
 		
 		// low_pass_filter_L.Process(feedback_L);
 		// low_pass_filter_R.Process(feedback_R);
@@ -188,6 +200,10 @@ int main(void)
 	lfo2.Init(Fs);
 	lfo2.SetFreq(1);
 	lfo2.SetAmp(1);
+
+	lfo3.Init(Fs);
+	lfo3.SetFreq(1);
+	lfo3.SetAmp(1);
 	
 	delay_L.Init();
 	delay_R.Init();
