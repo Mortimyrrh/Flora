@@ -104,7 +104,7 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	
 	vibrato_speed = dial3;
 	lfo1.SetFreq(vibrato_speed * 4);
-	float phasor_depth = dial4 * 1; //1ms wiggle
+	float phasor_depth = dial4 * 4; //1ms wiggle
 	lfo1.SetAmp(phasor_depth);
 	// lfo2.SetFreq(vibrato_speed * 9);
 
@@ -131,7 +131,7 @@ void AudioCallback(AudioHandle::InputBuffer in, AudioHandle::OutputBuffer out, s
 	for (size_t i = 0; i < size; i++)
 	{
 		lfo1_value = lfo1.Process();
-		delay_time = (Fs / 1000) * ((dial1 * 3) + phasor_depth + lfo1_value); // 0-3ms with a 1ms lfo 
+		delay_time = (Fs / 1000) * ((3 + (dial1 * 10)) + phasor_depth + lfo1_value); // 3-13ms with a 4ms lfo 
 
 		// lfo2_value = lfo2.Process();
 
